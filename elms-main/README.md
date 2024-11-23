@@ -1,1 +1,1 @@
-# ScholarFusion - A unified learning platform
+# WEB-DAILIGO - A unified learning platform
