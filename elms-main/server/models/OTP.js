@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const mailSender = require("../utils/mailSender");
+const bcrypt = require("bcrypt");
+
 const OTPSchema = new mongoose.Schema({
 	email: {
 		type: String,
@@ -12,38 +14,36 @@ const OTPSchema = new mongoose.Schema({
 	createdAt: {
 		type: Date,
 		default: Date.now,
-		expires: 60 * 5, // The document will be automatically deleted after 5 minutes of its creation time
+		expires: 60 * 5, // OTP expires after 5 minutes
 	},
 });
 
-// Define a function to send emails
+// Function to send the OTP email
 async function sendVerificationEmail(email, otp) {
-	// Create a transporter to send emails
-
-	// Define the email options
-
-	// Send the email
 	try {
 		const mailResponse = await mailSender(
 			email,
 			"Verification Email",
-			`Your Otp for Email Verification is ${otp}`
+			`Your OTP for email verification is ${otp}. It will expire in 5 minutes.`
 		);
 		console.log("Email sent successfully: ", mailResponse.response);
 	} catch (error) {
-		console.log("Error occurred while sending email: ", error);
-		throw error;
+		console.error("Error occurred while sending email: ", error);
+		throw error; // Rethrow or handle the error as needed
 	}
 }
 
-// Define a post-save hook to send email after the document has been saved
+// Pre-save hook to hash OTP and send verification email
 OTPSchema.pre("save", async function (next) {
-	console.log("New document saved to database");
-
-	// Only send an email when a new document is created
 	if (this.isNew) {
+		// Hash the OTP before saving it (for security reasons)
+		const hashedOtp = await bcrypt.hash(this.otp, 10);
+		this.otp = hashedOtp;
+
+		// Send the OTP email after the document has been saved
 		await sendVerificationEmail(this.email, this.otp);
 	}
+
 	next();
 });
 

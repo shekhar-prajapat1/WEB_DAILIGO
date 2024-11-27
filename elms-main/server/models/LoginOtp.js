@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
-const mailSender = require("../utils/mailSender");
+const mailSender = require("../utils/mailSender"); // Make sure this file is correctly implemented
+const bcrypt = require("bcrypt");
+
 const LoginOtpSchema = new mongoose.Schema({
 	email: {
 		type: String,
@@ -12,41 +14,40 @@ const LoginOtpSchema = new mongoose.Schema({
 	createdAt: {
 		type: Date,
 		default: Date.now,
-		expires: 60 * 5, // The document will be automatically deleted after 5 minutes of its creation time
+		expires: 60 * 5, // Automatically delete the document after 5 minutes
 	},
 });
 
-// Define a function to send emails
+// Function to send OTP email
 async function sendVerificationEmail(email, otp) {
-	// Create a transporter to send emails
-
-	// Define the email options
-
-	// Send the email
 	try {
+		// Send the OTP email
 		const mailResponse = await mailSender(
 			email,
-			"Login Otp Email",
-			`Your Login Otp is ${otp}`
+			"Login OTP Verification",
+			`Your OTP is ${otp}. It will expire in 5 minutes.`
 		);
-		console.log("LoginOtp sent successfully: ", mailResponse.response);
+		console.log("OTP sent successfully: ", mailResponse.response);
 	} catch (error) {
-		console.log("Error occurred while sending email: ", error);
-		throw error;
+		console.error("Error sending OTP email: ", error);
+		throw error; // Optionally rethrow or handle as needed
 	}
 }
 
-// Define a post-save hook to send email after the document has been saved
+// Pre-save hook to send email after saving the document
 LoginOtpSchema.pre("save", async function (next) {
-	console.log("New document saved to database");
-
-	// Only send an email when a new document is created
 	if (this.isNew) {
+		// Hash the OTP for security (optional)
+		const hashedOtp = await bcrypt.hash(this.otp, 10);
+		this.otp = hashedOtp;
+
+		// Send the OTP email after saving
 		await sendVerificationEmail(this.email, this.otp);
 	}
+
 	next();
 });
 
-const LoginOtp= mongoose.model("LoginOTP", LoginOtpSchema);
+const LoginOtp = mongoose.model("LoginOTP", LoginOtpSchema);
 
 module.exports = LoginOtp;

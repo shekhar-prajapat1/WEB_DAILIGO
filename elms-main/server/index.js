@@ -26,12 +26,13 @@ database.connect();
 // Middlewares
 app.use(express.json());
 app.use(cookieParser());
-app.use(
-	cors({
-		origin: "*",
-		credentials: true,
-	})
-);
+	
+// Enable CORS for the frontend
+app.use(cors({
+  origin: process.env.FRONTEND_URL,  // Allow frontend URL
+  methods: ["GET", "POST"],  // Allowed methods
+  credentials: true,  // Allow cookies if needed
+}));
 app.use(
 	fileUpload({
 		useTempFiles: true,
